@@ -1,0 +1,5 @@
+{
+  "name": "Professional Investment Trading Bot Mogul",
+  "description": "A sophisticated dashboard that identifies and tracks volatile cryptocurrency assets. It provides daily market analysis, performance tracking against watchlist entry, and integrates AI-powered news and insights for each asset.",
+  "requestFramePermissions": []
+}
