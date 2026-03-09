@@ -1,7 +1,8 @@
-import React from 'react';
-import { WatchlistItem, DailyData } from '../types';
+import React, { useEffect, useState } from 'react';
+import { WatchlistItem, DailyData, SentimentAnalysis } from '../types';
 import { PriceChart } from './PriceChart';
-import { XMarkIcon, ArrowDownIcon, ArrowUpIcon } from './IconComponents';
+import { XMarkIcon, ArrowDownIcon, ArrowUpIcon, ArrowPathIcon } from './IconComponents';
+import { getSentimentAnalysis } from '../services/geminiService';
 
 interface AssetDetailModalProps {
   asset: WatchlistItem;
@@ -32,7 +33,40 @@ const PercentChange: React.FC<{ value: number }> = ({ value }) => {
 };
 
 export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({ asset, onClose }) => {
+  const [sentiment, setSentiment] = useState<SentimentAnalysis | null>(null);
+  const [isSentimentLoading, setIsSentimentLoading] = useState(false);
   const latestData = asset.dailyData[asset.dailyData.length - 1];
+
+  useEffect(() => {
+    const fetchSentiment = async () => {
+      setIsSentimentLoading(true);
+      try {
+        const insights = asset.dailyData.map(d => d.keyNewsInsight).filter(Boolean);
+        const result = await getSentimentAnalysis(asset.name, insights);
+        setSentiment(result);
+      } catch (error) {
+        console.error("Sentiment fetch failed:", error);
+      } finally {
+        setIsSentimentLoading(false);
+      }
+    };
+
+    fetchSentiment();
+  }, [asset]);
+
+  const getSentimentColor = (type: string) => {
+    switch (type) {
+      case 'Bullish': return 'text-green-500';
+      case 'Bearish': return 'text-red-500';
+      default: return 'text-yellow-500';
+    }
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score > 66) return 'bg-green-500';
+    if (score > 33) return 'bg-yellow-500';
+    return 'bg-red-500';
+  };
 
   return (
     <div 
@@ -58,46 +92,87 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({ asset, onClo
           </button>
         </header>
         
-        <main className="p-6 overflow-y-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 text-center">
-             <div className="bg-gray-700/50 p-3 rounded-lg">
+        <main className="p-6 overflow-y-auto space-y-8">
+          {/* Top stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+             <div className="bg-gray-700/50 p-3 rounded-lg border border-gray-600">
                 <div className="text-sm text-gray-400">Current Price</div>
                 <div className="text-lg font-semibold text-white">{formatCurrency(latestData.closingPrice)}</div>
              </div>
-             <div className="bg-gray-700/50 p-3 rounded-lg">
+             <div className="bg-gray-700/50 p-3 rounded-lg border border-gray-600">
                 <div className="text-sm text-gray-400">Daily % Change</div>
                 <div className="text-lg"><PercentChange value={latestData.dailyPercentChange} /></div>
              </div>
-             <div className="bg-gray-700/50 p-3 rounded-lg">
+             <div className="bg-gray-700/50 p-3 rounded-lg border border-gray-600">
                 <div className="text-sm text-gray-400">Total % Since Watchlist</div>
                 <div className="text-lg"><PercentChange value={latestData.totalPercentSinceWatchlist} /></div>
              </div>
           </div>
 
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-2 text-white">Price History Since Watchlist</h3>
-            <div className="bg-gray-900 p-4 rounded-lg">
+          {/* Sentiment Section */}
+          <section className="bg-gray-900/50 rounded-xl border border-gray-700 p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white flex items-center">
+                AI Sentiment Analysis
+                {isSentimentLoading && <ArrowPathIcon className="w-4 h-4 ml-2 animate-spin text-blue-accent" />}
+              </h3>
+              {sentiment && (
+                <span className={`font-bold px-2 py-1 rounded text-sm bg-gray-800 border border-gray-600 ${getSentimentColor(sentiment.sentiment)}`}>
+                  {sentiment.sentiment.toUpperCase()}
+                </span>
+              )}
+            </div>
+            
+            {isSentimentLoading ? (
+              <div className="py-4 flex flex-col items-center justify-center space-y-2">
+                <p className="text-gray-400 text-sm italic">Processing historical insights for sentiment...</p>
+              </div>
+            ) : sentiment ? (
+              <div className="space-y-4">
+                <div className="flex items-center space-x-4">
+                  <div className="flex-1 bg-gray-700 h-2 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full transition-all duration-1000 ${getScoreColor(sentiment.score)}`}
+                      style={{ width: `${sentiment.score}%` }}
+                    />
+                  </div>
+                  <span className="text-sm font-mono text-gray-300 w-8">{sentiment.score}</span>
+                </div>
+                <p className="text-gray-300 text-sm leading-relaxed border-l-2 border-blue-accent/30 pl-3">
+                  {sentiment.summary}
+                </p>
+              </div>
+            ) : (
+              <p className="text-gray-500 text-sm italic">Analysis unavailable.</p>
+            )}
+          </section>
+
+          {/* Chart Section */}
+          <div>
+            <h3 className="text-lg font-semibold mb-3 text-white">Price History & Volatility (OHLC)</h3>
+            <div className="bg-gray-900 p-4 rounded-lg border border-gray-700">
                 <PriceChart data={asset.dailyData} width={700} height={250} />
             </div>
           </div>
 
+          {/* Insights Table */}
           <div>
-             <h3 className="text-lg font-semibold mb-2 text-white">Daily Data & Insights</h3>
-             <div className="max-h-64 overflow-y-auto border border-gray-700 rounded-lg">
+             <h3 className="text-lg font-semibold mb-3 text-white">Historical Data Log</h3>
+             <div className="max-h-64 overflow-y-auto border border-gray-700 rounded-lg shadow-inner">
                 <table className="w-full text-sm text-left text-gray-400">
-                    <thead className="text-xs text-gray-300 uppercase bg-gray-700/50 sticky top-0">
+                    <thead className="text-xs text-gray-300 uppercase bg-gray-700/80 sticky top-0">
                         <tr>
                             <th className="px-4 py-2">Date</th>
-                            <th className="px-4 py-2">Closing Price</th>
-                            <th className="px-4 py-2">Daily % Change</th>
-                            <th className="px-4 py-2">Key News/Insight</th>
+                            <th className="px-4 py-2">Closing</th>
+                            <th className="px-4 py-2">Daily %</th>
+                            <th className="px-4 py-2">Mogul Insight</th>
                         </tr>
                     </thead>
-                    <tbody className="bg-gray-800">
+                    <tbody className="bg-gray-800/50">
                         {[...asset.dailyData].reverse().map((data: DailyData) => (
-                            <tr key={data.date} className="border-b border-gray-700 last:border-b-0">
-                                <td className="px-4 py-2">{data.date}</td>
-                                <td className="px-4 py-2">{formatCurrency(data.closingPrice)}</td>
+                            <tr key={data.date} className="border-b border-gray-700 last:border-b-0 hover:bg-gray-700/30 transition-colors">
+                                <td className="px-4 py-2 whitespace-nowrap">{data.date}</td>
+                                <td className="px-4 py-2 font-mono">{formatCurrency(data.closingPrice)}</td>
                                 <td className="px-4 py-2"><PercentChange value={data.dailyPercentChange} /></td>
                                 <td className="px-4 py-2 text-gray-300">{data.keyNewsInsight}</td>
                             </tr>

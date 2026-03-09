@@ -7,6 +7,8 @@ export interface Asset {
   dailyChange: number;
   openingPrice: number;
   lifetimeChange: number;
+  highPrice?: number;
+  lowPrice?: number;
 }
 
 export interface DailyData {
@@ -14,6 +16,8 @@ export interface DailyData {
   marketCap: number;
   closingPrice: number;
   openingPrice: number;
+  highPrice: number;
+  lowPrice: number;
   dailyPercentChange: number;
   totalPercentSinceWatchlist: number;
   lifetimePercentChange: number;
@@ -34,4 +38,10 @@ export interface NewsAlertItem {
     uri: string;
     title: string;
   }[];
+}
+
+export interface SentimentAnalysis {
+  sentiment: 'Bullish' | 'Bearish' | 'Neutral';
+  score: number; // 0 to 100
+  summary: string;
 }

@@ -1,0 +1,64 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile and settings",
+      "type": "object",
+      "properties": {
+        "numAssetsToWatch": {
+          "type": "number",
+          "description": "Number of assets to watch daily"
+        },
+        "alertThreshold": {
+          "type": "number",
+          "description": "Threshold for alerts"
+        },
+        "role": {
+          "type": "string",
+          "description": "User role (e.g., admin, user)"
+        }
+      },
+      "required": ["numAssetsToWatch", "alertThreshold", "role"]
+    },
+    "WatchlistItem": {
+      "title": "WatchlistItem",
+      "description": "An asset being tracked by the user",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "symbol": { "type": "string" },
+        "dateOfEntry": { "type": "string" },
+        "dailyData": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "day": { "type": "number" },
+              "closingPrice": { "type": "number" },
+              "openingPrice": { "type": "number" },
+              "highPrice": { "type": "number" },
+              "lowPrice": { "type": "number" },
+              "marketCap": { "type": "number" },
+              "dailyPercentChange": { "type": "number" },
+              "totalPercentSinceWatchlist": { "type": "number" },
+              "lifetimePercentChange": { "type": "number" },
+              "keyNewsInsight": { "type": "string" }
+            }
+          }
+        }
+      },
+      "required": ["id", "name", "symbol", "dateOfEntry", "dailyData"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profiles and settings"
+    },
+    "/users/{userId}/watchlist/{assetId}": {
+      "schema": { "$ref": "#/entities/WatchlistItem" },
+      "description": "Assets tracked by the user"
+    }
+  }
+}

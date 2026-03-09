@@ -1,15 +1,15 @@
 import { GoogleGenAI } from "@google/genai";
-import { Asset, NewsAlertItem } from "../types";
+import { Asset, NewsAlertItem, SentimentAnalysis } from "../types";
 
-const API_KEY = process.env.API_KEY;
+const API_KEY = process.env.GEMINI_API_KEY;
 
 if (!API_KEY) {
-  throw new Error("API_KEY environment variable not set");
+  throw new Error("GEMINI_API_KEY environment variable not set");
 }
 
 const ai = new GoogleGenAI({ apiKey: API_KEY });
 
-async function generateWithRetry(prompt: string, modelName: 'gemini-2.5-pro' | 'gemini-2.5-flash', config: any): Promise<string> {
+async function generateWithRetry(prompt: string, modelName: 'gemini-3-flash-preview', config: any): Promise<string> {
     let retries = 3;
     while(retries > 0) {
         try {
@@ -19,14 +19,20 @@ async function generateWithRetry(prompt: string, modelName: 'gemini-2.5-pro' | '
                 config: config,
             });
             return result.text;
-        } catch (e) {
+        } catch (e: any) {
             console.error(`Gemini API call failed for model ${modelName}. Retries left: ${retries - 1}`, e);
             retries--;
-            if(retries === 0) throw e;
-            await new Promise(res => setTimeout(res, 1000));
+            if(retries === 0) {
+                // Return a fallback string instead of throwing to prevent app crash
+                if (config.responseMimeType === "application/json") {
+                    return JSON.stringify({ error: "Rate limit exceeded or API error." });
+                }
+                return "AI analysis currently unavailable due to rate limits. Please try again later.";
+            }
+            await new Promise(res => setTimeout(res, 2000)); // Increased backoff
         }
     }
-    throw new Error("Gemini API call failed after multiple retries.");
+    return "AI analysis currently unavailable.";
 }
 
 
@@ -42,14 +48,10 @@ export const getExecutiveSummary = async (gainers: Asset[], losers: Asset[]): Pr
         Today's Top 5 Losers: ${losersList}
 
         Format your response as plain text, not markdown.
-        Example: "Solana led the market with a staggering 15% gain, signaling renewed interest in layer-1 platforms amidst broader market consolidation."
     `;
 
-    return generateWithRetry(prompt, 'gemini-2.5-pro', {
-      temperature: 0.7,
-      topK: 1,
-      topP: 1,
-      thinkingConfig: { thinkingBudget: 32768 }
+    return generateWithRetry(prompt, 'gemini-3-flash-preview', {
+      temperature: 0.7
     });
 };
 
@@ -60,14 +62,10 @@ export const getKeyNewsAlerts = async (): Promise<NewsAlertItem> => {
         The insights should be concise, impactful, and relevant to a trader.
 
         Format your response as a simple list with each item on a new line, starting with a dash.
-        Example:
-        - Regulatory crackdown fears in Asia suppress market sentiment.
-        - Whale wallets show significant accumulation of ETH, hinting at a potential price surge.
-        - A major DeFi protocol announced a critical security vulnerability, causing its token to plummet.
     `;
     try {
         const result = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-flash-preview',
             contents: prompt,
             config: {
               tools: [{googleSearch: {}}],
@@ -79,7 +77,6 @@ export const getKeyNewsAlerts = async (): Promise<NewsAlertItem> => {
         const sources = groundingChunks
             .map(chunk => chunk.web)
             .filter((web): web is { uri: string; title: string; } => !!web && !!web.uri)
-             // Deduplicate sources based on URI
             .filter((source, index, self) => index === self.findIndex(s => s.uri === source.uri));
         
         return { alerts, sources };
@@ -93,7 +90,6 @@ export const getKeyNewsAlerts = async (): Promise<NewsAlertItem> => {
     }
 };
 
-
 export const getAssetInsights = async (assets: Asset[]): Promise<Record<string, string>> => {
     const assetList = assets.map(a => `${a.name} (${a.symbol})`).join(', ');
 
@@ -104,13 +100,11 @@ export const getAssetInsights = async (assets: Asset[]): Promise<Record<string, 
         Cryptocurrencies: ${assetList}
 
         Format the output as a single JSON object where the key is the asset's ticker symbol (e.g., "BTC") and the value is the insight string.
-        Ensure the JSON is well-formed.
     `;
 
-    const response = await generateWithRetry(prompt, 'gemini-2.5-pro', {
+    const response = await generateWithRetry(prompt, 'gemini-3-flash-preview', {
         temperature: 0.5,
-        responseMimeType: "application/json",
-        thinkingConfig: { thinkingBudget: 32768 }
+        responseMimeType: "application/json"
     });
     try {
         const cleanedResponse = response.replace(/```json\n?|```/g, '').trim();
@@ -122,5 +116,34 @@ export const getAssetInsights = async (assets: Asset[]): Promise<Record<string, 
             fallback[a.symbol] = "AI insight generation failed.";
         });
         return fallback;
+    }
+};
+
+export const getSentimentAnalysis = async (assetName: string, insights: string[]): Promise<SentimentAnalysis> => {
+    const prompt = `
+        Analyze the overall market sentiment for ${assetName} based on these recent historical news insights:
+        ${insights.join('\n')}
+
+        Return a JSON object with:
+        1. "sentiment": one of "Bullish", "Bearish", or "Neutral"
+        2. "score": a number from 0 (extremely bearish) to 100 (extremely bullish)
+        3. "summary": a one-sentence professional justification for this sentiment.
+    `;
+
+    const response = await generateWithRetry(prompt, 'gemini-3-flash-preview', {
+        temperature: 0.3,
+        responseMimeType: "application/json"
+    });
+
+    try {
+        const cleanedResponse = response.replace(/```json\n?|```/g, '').trim();
+        return JSON.parse(cleanedResponse);
+    } catch (e) {
+        console.error("Failed to parse sentiment analysis:", e);
+        return {
+            sentiment: 'Neutral',
+            score: 50,
+            summary: 'Insufficient data for a definitive sentiment analysis.'
+        };
     }
 };

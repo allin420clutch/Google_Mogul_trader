@@ -1,4 +1,3 @@
-
 import { Asset } from '../types';
 
 const initialAssets: Asset[] = [
@@ -25,7 +24,11 @@ const initialAssets: Asset[] = [
 ];
 
 export const getInitialMarketData = (): Asset[] => {
-  return initialAssets;
+  return initialAssets.map(asset => ({
+    ...asset,
+    highPrice: asset.price,
+    lowPrice: asset.price
+  }));
 };
 
 export const getUpdatedMarketData = (previousData: Asset[]): Asset[] => {
@@ -33,20 +36,29 @@ export const getUpdatedMarketData = (previousData: Asset[]): Asset[] => {
         const openingPrice = asset.price;
         // Introduce more volatility. Max change can be +/- 15%
         const volatilityFactor = 0.15; 
-        const changePercent = (Math.random() - 0.5) * 2 * volatilityFactor; // Random change between -volatilityFactor and +volatilityFactor
+        const changePercent = (Math.random() - 0.5) * 2 * volatilityFactor; 
         
-        const newPrice = openingPrice * (1 + changePercent);
+        const closingPrice = openingPrice * (1 + changePercent);
         const newMarketCap = asset.marketCap * (1 + changePercent);
         const dailyChange = changePercent * 100;
 
-        const lifetimeChange = ((newPrice - (asset.price / (1 + asset.lifetimeChange/100))) / (asset.price / (1 + asset.lifetimeChange/100))) * 100;
+        // Generate high and low prices
+        const maxOC = Math.max(openingPrice, closingPrice);
+        const minOC = Math.min(openingPrice, closingPrice);
+        // Randomly extend high/low beyond open/close
+        const highPrice = maxOC * (1 + Math.random() * (volatilityFactor / 2));
+        const lowPrice = minOC * (1 - Math.random() * (volatilityFactor / 2));
+
+        const lifetimeChange = ((closingPrice - (asset.price / (1 + asset.lifetimeChange/100))) / (asset.price / (1 + asset.lifetimeChange/100))) * 100;
 
         return {
             ...asset,
-            price: newPrice,
+            price: closingPrice,
             marketCap: newMarketCap,
             dailyChange: dailyChange,
             openingPrice: openingPrice,
+            highPrice,
+            lowPrice,
             lifetimeChange: lifetimeChange
         };
     });

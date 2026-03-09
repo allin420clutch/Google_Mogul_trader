@@ -1,10 +1,19 @@
 import React from 'react';
 import { DailyData } from '../types';
+import {
+  ComposedChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 
 interface PriceChartProps {
   data: DailyData[];
-  width: number;
-  height: number;
+  width?: number;
+  height?: number;
 }
 
 const formatCurrency = (value: number) => {
@@ -14,55 +23,118 @@ const formatCurrency = (value: number) => {
     return `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
-export const PriceChart: React.FC<PriceChartProps> = ({ data, width, height }) => {
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    const isBullish = data.closingPrice >= data.openingPrice;
+    const colorClass = isBullish ? 'text-green-500' : 'text-red-500';
+    
+    return (
+      <div className="bg-gray-800 border border-gray-700 p-4 rounded-lg shadow-xl text-sm min-w-[200px]">
+        <p className="text-gray-300 mb-3 font-semibold border-b border-gray-700 pb-2">{data.date}</p>
+        
+        <div className="space-y-3">
+          <div className="flex justify-between items-center group" title="Opening Price: The price of the asset at the beginning of the trading day.">
+            <span className="text-gray-400 border-b border-dashed border-gray-500 cursor-help">Open</span> 
+            <span className="text-white ml-4">{formatCurrency(data.openingPrice)}</span>
+          </div>
+          
+          <div className="flex justify-between items-center group" title="High: The highest price reached during the trading day.">
+            <span className="text-gray-400 border-b border-dashed border-gray-500 cursor-help">High</span> 
+            <span className="text-white ml-4">{formatCurrency(data.highPrice)}</span>
+          </div>
+          
+          <div className="flex justify-between items-center group" title="Low: The lowest price reached during the trading day.">
+            <span className="text-gray-400 border-b border-dashed border-gray-500 cursor-help">Low</span> 
+            <span className="text-white ml-4">{formatCurrency(data.lowPrice)}</span>
+          </div>
+          
+          <div className="flex justify-between items-center group" title="Closing Price: The last price of the asset at the end of the trading day.">
+            <span className="text-gray-400 border-b border-dashed border-gray-500 cursor-help">Close</span> 
+            <span className={`font-bold ml-4 ${colorClass}`}>{formatCurrency(data.closingPrice)}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
+const CustomYAxisTick = ({ x, y, payload }: any) => {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text x={0} y={0} dy={4} textAnchor="end" fill="#a0a0a0" fontSize={10} className="cursor-help">
+        <title>Price Axis: Represents the value of the asset in USD.</title>
+        {formatCurrency(payload.value)}
+      </text>
+    </g>
+  );
+};
+
+const CustomXAxisTick = ({ x, y, payload }: any) => {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text x={0} y={0} dy={14} textAnchor="middle" fill="#a0a0a0" fontSize={10} className="cursor-help">
+        <title>Time Axis: Represents the trading days.</title>
+        {payload.value}
+      </text>
+    </g>
+  );
+};
+
+export const PriceChart: React.FC<PriceChartProps> = ({ data, height = 250 }) => {
     if (data.length < 2) {
         return (
-            <div style={{ width, height }} className="flex items-center justify-center text-gray-500">
+            <div style={{ height }} className="flex items-center justify-center text-gray-500 w-full">
                 Not enough data to display a chart.
             </div>
         );
     }
     
-    const padding = { top: 20, right: 20, bottom: 30, left: 60 };
-    const chartWidth = width - padding.left - padding.right;
-    const chartHeight = height - padding.top - padding.bottom;
+    const chartData = data.map(d => ({
+      ...d,
+      isBullish: d.closingPrice >= d.openingPrice,
+    }));
 
-    const prices = data.map(d => d.closingPrice);
-    const minPrice = Math.min(...prices);
-    const maxPrice = Math.max(...prices);
-    
-    const priceRange = maxPrice - minPrice === 0 ? 1 : maxPrice - minPrice;
-
-    const getX = (index: number) => padding.left + (index / (data.length - 1)) * chartWidth;
-    const getY = (price: number) => padding.top + chartHeight - ((price - minPrice) / priceRange) * chartHeight;
-
-    const pathData = data.map((d, i) => `${i === 0 ? 'M' : 'L'} ${getX(i)} ${getY(d.closingPrice)}`).join(' ');
-
-    const isPriceIncreasing = data[data.length - 1].closingPrice >= data[0].closingPrice;
-    const strokeColor = isPriceIncreasing ? '#22c55e' : '#ef4444';
+    const allHighs = data.map(d => d.highPrice);
+    const allLows = data.map(d => d.lowPrice);
+    const minPrice = Math.min(...allLows);
+    const maxPrice = Math.max(...allHighs);
+    const padding = (maxPrice - minPrice) * 0.1;
 
     return (
-        <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`Price chart for asset showing data over ${data.length} days.`}>
-            {/* Y-axis labels and grid lines */}
-            <text x={padding.left - 10} y={padding.top} dy="0.3em" textAnchor="end" fill="#a0a0a0" fontSize="10">{formatCurrency(maxPrice)}</text>
-            <line x1={padding.left} y1={padding.top} x2={width - padding.right} y2={padding.top} stroke="#2d2d2d" strokeDasharray="2" />
+      <div style={{ width: '100%', height }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart
+            data={chartData}
+            margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke="#2d2d2d" vertical={false} />
+            <XAxis 
+              dataKey="date" 
+              stroke="#a0a0a0" 
+              tick={<CustomXAxisTick />}
+              tickMargin={10}
+              minTickGap={30}
+            />
+            <YAxis 
+              domain={[minPrice - padding, maxPrice + padding]} 
+              stroke="#a0a0a0" 
+              tick={<CustomYAxisTick />}
+              width={80}
+            />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: '#2d2d2d', opacity: 0.4 }} />
             
-            <text x={padding.left - 10} y={height - padding.bottom} dy="0.3em" textAnchor="end" fill="#a0a0a0" fontSize="10">{formatCurrency(minPrice)}</text>
-            <line x1={padding.left} y1={height - padding.bottom} x2={width - padding.right} y2={height - padding.bottom} stroke="#2d2d2d" />
-
-            {/* X-axis labels */}
-            <text x={padding.left} y={height - padding.bottom + 15} textAnchor="start" fill="#a0a0a0" fontSize="10">{data[0].date}</text>
-            <text x={width - padding.right} y={height - padding.bottom + 15} textAnchor="end" fill="#a0a0a0" fontSize="10">{data[data.length-1].date}</text>
-
-            {/* Price line */}
-            <path d={pathData} fill="none" stroke={strokeColor} strokeWidth="2" />
-
-            {/* Data points with tooltips */}
-            {data.map((d, i) => (
-                <circle key={i} cx={getX(i)} cy={getY(d.closingPrice)} r="3" fill={strokeColor}>
-                    <title>{`${d.date}: ${formatCurrency(d.closingPrice)}`}</title>
-                </circle>
-            ))}
-        </svg>
+            <Line 
+              type="monotone" 
+              dataKey="closingPrice" 
+              stroke="#00aaff" 
+              strokeWidth={2}
+              dot={false}
+              activeDot={{ r: 6, fill: '#00aaff', stroke: '#1e1e1e', strokeWidth: 2 }}
+            />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
     );
 };
