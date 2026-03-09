@@ -9,6 +9,7 @@ import { AssetDetailModal } from './AssetDetailModal';
 import { ToastContainer, ToastNotification } from './Toast';
 import { useAuth } from './AuthProvider';
 import { MarketAnalyst } from './MarketAnalyst';
+import { PortfolioPerformance } from './PortfolioPerformance';
 import { BrainCircuit, LayoutDashboard } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -153,6 +154,10 @@ const App: React.FC = () => {
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-6">
             <div className="lg:col-span-3 xl:col-span-4">
+                <PortfolioPerformance watchlist={watchlist} />
+            </div>
+            
+            <div className="lg:col-span-3 xl:col-span-4">
                 <DashboardCard title="Executive Summary">
                     <p className="text-gray-300">{executiveSummary}</p>
                 </DashboardCard>
@@ -164,7 +169,7 @@ const App: React.FC = () => {
                 </DashboardCard>
             </div>
 
-            <div className="lg:col-span-3 xl:col-span-1 row-start-2 xl:row-start-1 xl:col-start-4">
+            <div className="lg:col-span-3 xl:col-span-1 row-start-3 xl:row-start-3 xl:col-start-4">
                 <div className="flex flex-col gap-6">
                     <DashboardCard title="Key News & Market Alerts">
                         <ul className="space-y-3 list-disc list-inside text-gray-300">

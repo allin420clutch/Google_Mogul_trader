@@ -147,3 +147,28 @@ export const getSentimentAnalysis = async (assetName: string, insights: string[]
         };
     }
 };
+
+export const analyzeChartImage = async (base64Data: string, mimeType: string = "image/jpeg"): Promise<string> => {
+    const prompt = "Analyze this cryptocurrency chart. Identify the current trend (Bullish/Bearish) and look for any technical patterns like Head and Shoulders or Support/Resistance levels.";
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: {
+                parts: [
+                    { text: prompt },
+                    {
+                        inlineData: {
+                            data: base64Data,
+                            mimeType: mimeType
+                        }
+                    }
+                ]
+            }
+        });
+        return response.text || "No analysis generated.";
+    } catch (e) {
+        console.error("Failed to analyze chart image:", e);
+        return "AI analysis currently unavailable due to an error.";
+    }
+};
