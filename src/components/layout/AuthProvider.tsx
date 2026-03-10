@@ -44,6 +44,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             await setDoc(userRef, {
               numAssetsToWatch: 5,
               alertThreshold: 5.0,
+              balance: 100000.0, // Initial $100,000 balance
               role: 'user'
             });
           }
@@ -77,6 +78,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       displayName: 'Guest Trader',
       photoURL: 'https://via.placeholder.com/150'
     } as User;
+
+    // For Guest Bypass, we also want to ensure a "profile" logic is handled if needed
+    // In this app, we'll just treat the Guest as having a transient profile with $100k
     setUser(mockUser);
     setLoading(false);
   };

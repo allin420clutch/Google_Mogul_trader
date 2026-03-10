@@ -10,10 +10,11 @@ import { ToastContainer, ToastNotification } from '@/components/ui/Toast';
 import { useAuth } from '@/components/layout/AuthProvider';
 import { MarketAnalyst } from '@/components/dashboard/MarketAnalyst';
 import { PortfolioPerformance } from '@/components/dashboard/PortfolioPerformance';
-import { BrainCircuit, LayoutDashboard } from 'lucide-react';
+import { PortfolioView } from '@/components/portfolio/PortfolioView';
+import { BrainCircuit, LayoutDashboard, Wallet } from 'lucide-react';
 
 const App: React.FC = () => {
-  const { user, loading: authLoading, signIn, logOut } = useAuth();
+  const { user, loading: authLoading, signIn, logOut, developerBypass } = useAuth();
 
   const {
     watchlist,
@@ -30,7 +31,7 @@ const App: React.FC = () => {
   const [numAssetsToWatch, setNumAssetsToWatch] = useState(5);
   const [alertThreshold, setAlertThreshold] = useState(5.0);
   const [notifications, setNotifications] = useState<ToastNotification[]>([]);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'analyst'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'portfolio' | 'analyst'>('dashboard');
 
   // Keep track of which assets have been alerted for the current day to avoid spam
   const alertedAssetsRef = useRef<Record<string, number>>({});
@@ -109,7 +110,6 @@ const App: React.FC = () => {
   }
 
   if (!user) {
-    const { developerBypass } = useAuth();
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gray-900 text-white">
         <h1 className="text-4xl font-bold mb-4">Investment Trading Bot <span className="text-blue-accent">Mogul</span></h1>
@@ -160,6 +160,14 @@ const App: React.FC = () => {
       return (
         <div className="p-6 max-w-5xl mx-auto">
           <MarketAnalyst />
+        </div>
+      );
+    }
+
+    if (activeTab === 'portfolio') {
+      return (
+        <div className="p-6 max-w-7xl mx-auto">
+          <PortfolioView userId={user?.uid} watchlist={watchlist} onAssetClick={handleSelectAsset} />
         </div>
       );
     }
@@ -244,6 +252,16 @@ const App: React.FC = () => {
           >
             <LayoutDashboard className="w-4 h-4" />
             Dashboard
+          </button>
+          <button
+            onClick={() => setActiveTab('portfolio')}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'portfolio'
+              ? 'border-blue-accent text-blue-accent'
+              : 'border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-700'
+              }`}
+          >
+            <Wallet className="w-4 h-4" />
+            Portfolio
           </button>
           <button
             onClick={() => setActiveTab('analyst')}

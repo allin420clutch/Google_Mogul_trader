@@ -45,3 +45,33 @@ export interface SentimentAnalysis {
   score: number; // 0 to 100
   summary: string;
 }
+
+export interface Holding {
+  assetId: string;
+  symbol: string;
+  name: string;
+  amount: number;
+  averageCost: number;
+  totalCostBasis: number;
+}
+
+export interface Transaction {
+  id: string;
+  assetId: string;
+  symbol: string;
+  type: 'BUY' | 'SELL';
+  amount: number;
+  price: number;
+  total: number;
+  timestamp: string;
+}
+
+export interface UserProfile {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  numAssetsToWatch: number;
+  alertThreshold: number;
+  balance: number; // Cash balance in USD
+  role: 'admin' | 'user';
+}

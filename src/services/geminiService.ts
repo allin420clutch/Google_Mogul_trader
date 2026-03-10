@@ -11,7 +11,12 @@ if (API_KEY) {
 }
 
 async function generateWithRetry(prompt: string, modelName: 'gemini-3-flash-preview', config: any): Promise<string> {
-    if (!ai) return "AI analysis requires GEMINI_API_KEY.";
+    if (!ai) {
+        if (config.responseMimeType === "application/json") {
+            return JSON.stringify({ error: "AI analysis requires GEMINI_API_KEY." });
+        }
+        return "AI analysis requires GEMINI_API_KEY.";
+    }
     let retries = 3;
     while (retries > 0) {
         try {

@@ -45,19 +45,32 @@ service cloud.firestore {
     }
 
     function isValidUserProfile(data) {
-      return hasOnlyAllowedFields(['numAssetsToWatch', 'alertThreshold', 'role']) &&
+      return hasOnlyAllowedFields(['numAssetsToWatch', 'alertThreshold', 'role', 'balance']) &&
              data.numAssetsToWatch is number && data.numAssetsToWatch >= 1 && data.numAssetsToWatch <= 10 &&
              data.alertThreshold is number && data.alertThreshold >= 0.1 && data.alertThreshold <= 100 &&
+             data.balance is number &&
              data.role in ['admin', 'user'];
     }
 
     function isValidWatchlistItem(data) {
       return hasOnlyAllowedFields(['id', 'name', 'symbol', 'dateOfEntry', 'dailyData']) &&
-             data.id is string && data.id.size() > 0 && data.id.size() < 100 &&
-             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
-             data.symbol is string && data.symbol.size() > 0 && data.symbol.size() < 20 &&
-             data.dateOfEntry is string && data.dateOfEntry.size() > 0 && data.dateOfEntry.size() < 50 &&
-             data.dailyData is list && data.dailyData.size() <= 1000;
+             data.id is string && data.id.size() > 0 &&
+             data.name is string && data.name.size() > 0 &&
+             data.symbol is string && data.symbol.size() > 0 &&
+             data.dateOfEntry is string &&
+             data.dailyData is list;
+    }
+
+    function isValidHolding(data) {
+      return hasOnlyAllowedFields(['assetId', 'symbol', 'name', 'amount', 'averageCost', 'totalCostBasis']) &&
+             data.assetId is string && data.symbol is string && data.name is string &&
+             data.amount is number && data.averageCost is number && data.totalCostBasis is number;
+    }
+
+    function isValidTransaction(data) {
+      return hasOnlyAllowedFields(['id', 'assetId', 'symbol', 'type', 'amount', 'price', 'total', 'timestamp']) &&
+             data.assetId is string && data.type in ['BUY', 'SELL'] &&
+             data.amount is number && data.price is number && data.total is number;
     }
 
     // ===============================================================
@@ -75,6 +88,17 @@ service cloud.firestore {
         allow create: if isOwner(userId) && isValidWatchlistItem(request.resource.data);
         allow update: if isOwner(userId) && isValidWatchlistItem(request.resource.data);
         allow delete: if isOwner(userId) || isAdmin();
+      }
+
+      match /holdings/{assetId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create, update: if isOwner(userId) && isValidHolding(request.resource.data);
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+
+      match /transactions/{txId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && isValidTransaction(request.resource.data);
       }
     }
   }
