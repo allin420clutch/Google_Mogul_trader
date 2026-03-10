@@ -12,6 +12,23 @@ export const usePortfolio = (userId?: string) => {
 
     const fetchPortfolio = useCallback(async () => {
         if (!userId) return;
+
+        if (userId === 'dev-guest-user') {
+            // Initialize mock guest profile and empty holdings
+            setProfile({
+                uid: 'dev-guest-user',
+                email: 'guest@example.com',
+                displayName: 'Guest Trader',
+                numAssetsToWatch: 5,
+                alertThreshold: 5.0,
+                balance: 100000.0,
+                role: 'user'
+            });
+            setHoldings([]);
+            setTransactions([]);
+            return;
+        }
+
         setIsLoading(true);
 
         try {
@@ -20,17 +37,6 @@ export const usePortfolio = (userId?: string) => {
             const userSnap = await getDoc(userRef);
             if (userSnap.exists()) {
                 setProfile({ uid: userId, ...userSnap.data() } as UserProfile);
-            } else if (userId === 'dev-guest-user') {
-                // Fallback for guest if profile doesn't exist in DB
-                setProfile({
-                    uid: 'dev-guest-user',
-                    email: 'guest@example.com',
-                    displayName: 'Guest Trader',
-                    numAssetsToWatch: 5,
-                    alertThreshold: 5.0,
-                    balance: 100000.0,
-                    role: 'user'
-                });
             }
 
             // 2. Fetch Holdings

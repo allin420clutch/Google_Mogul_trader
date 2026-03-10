@@ -29,45 +29,68 @@ export const PortfolioView: React.FC<PortfolioViewProps> = ({ userId, watchlist,
     }, 0);
 
     const totalValue = (profile?.balance || 0) + totalHoldingsValue;
+    const totalCostBasis = holdings.reduce((sum, h) => sum + h.totalCostBasis, 0);
+    const totalProfit = totalHoldingsValue - totalCostBasis;
+    const totalProfitPercent = totalCostBasis > 0 ? (totalProfit / totalCostBasis) * 100 : 0;
 
-    const chartData = holdings.map(h => ({
-        name: h.symbol,
-        value: h.amount * getAssetPrice(h.symbol)
-    })).sort((a, b) => b.value - a.value);
+    const chartData = holdings
+        .filter(h => (h.amount * getAssetPrice(h.symbol)) > 0)
+        .map(h => ({
+            name: h.symbol,
+            value: h.amount * getAssetPrice(h.symbol)
+        })).sort((a, b) => b.value - a.value);
 
-    if (chartData.length > 0 && profile?.balance) {
+    if (profile?.balance && profile.balance > 0) {
         chartData.push({ name: 'Cash', value: profile.balance });
     }
 
     if (isLoading && !profile) {
-        return <div className="p-8 text-center text-gray-400">Loading Portfolio...</div>;
+        return (
+            <div className="flex flex-col items-center justify-center p-20 text-gray-400">
+                <TrendingUp className="w-12 h-12 mb-4 animate-bounce text-blue-accent" />
+                <p className="text-xl font-medium">Synchronizing Portfolio...</p>
+            </div>
+        );
     }
 
     return (
-        <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="space-y-6 animate-in fade-in duration-500">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <DashboardCard title="Total Portfolio Value">
                     <div className="flex items-center justify-between">
                         <div className="text-3xl font-bold text-white">{formatCurrency(totalValue)}</div>
-                        <TrendingUp className="text-green-500 w-8 h-8" />
+                        <div className={`flex items-center text-xs ${totalProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                            {totalProfit >= 0 ? <TrendingUp size={14} className="mr-1" /> : <TrendingDown size={14} className="mr-1" />}
+                            {totalProfitPercent.toFixed(2)}%
+                        </div>
                     </div>
-                    <p className="text-gray-400 text-sm mt-2">Combined Cash & Assets</p>
+                    <p className="text-gray-400 text-[10px] mt-2 uppercase tracking-wider">Combined Net Worth</p>
                 </DashboardCard>
 
-                <DashboardCard title="Cash Balance">
+                <DashboardCard title="Available Cash">
                     <div className="flex items-center justify-between">
                         <div className="text-3xl font-bold text-blue-accent">{formatCurrency(profile?.balance || 0)}</div>
-                        <Wallet className="text-blue-accent w-8 h-8" />
+                        <Wallet className="text-blue-accent/50 w-8 h-8" />
                     </div>
-                    <p className="text-gray-400 text-sm mt-2">Available for Trading</p>
+                    <p className="text-gray-400 text-[10px] mt-2 uppercase tracking-wider">Buying Power</p>
                 </DashboardCard>
 
-                <DashboardCard title="Holdings Value">
+                <DashboardCard title="Active Holdings">
                     <div className="flex items-center justify-between">
                         <div className="text-3xl font-bold text-purple-400">{formatCurrency(totalHoldingsValue)}</div>
-                        <PieChartIcon className="text-purple-400 w-8 h-8" />
+                        <PieChartIcon className="text-purple-400/50 w-8 h-8" />
                     </div>
-                    <p className="text-gray-400 text-sm mt-2">Market value of assets</p>
+                    <p className="text-gray-400 text-[10px] mt-2 uppercase tracking-wider">Market Value</p>
+                </DashboardCard>
+
+                <DashboardCard title="Total Profit/Loss">
+                    <div className="flex items-center justify-between">
+                        <div className={`text-3xl font-bold ${totalProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                            {totalProfit >= 0 ? '+' : ''}{formatCurrency(totalProfit)}
+                        </div>
+                        <DollarSign className={`w-8 h-8 ${totalProfit >= 0 ? 'text-green-500/50' : 'text-red-500/50'}`} />
+                    </div>
+                    <p className="text-gray-400 text-[10px] mt-2 uppercase tracking-wider">Unrealized P/L</p>
                 </DashboardCard>
             </div>
 
