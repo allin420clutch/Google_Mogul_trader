@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { WatchlistItem, DailyData, SentimentAnalysis } from '../types';
-import { PriceChart } from './PriceChart';
-import { XMarkIcon, ArrowDownIcon, ArrowUpIcon, ArrowPathIcon } from './IconComponents';
-import { getSentimentAnalysis } from '../services/geminiService';
+import { WatchlistItem, DailyData, SentimentAnalysis } from '@/types';
+import { PriceChart } from '@/components/assets/PriceChart';
+import { XMarkIcon, ArrowDownIcon, ArrowUpIcon, ArrowPathIcon } from '@/components/ui/IconComponents';
+import { getSentimentAnalysis } from '@/services/geminiService';
 
 interface AssetDetailModalProps {
   asset: WatchlistItem;

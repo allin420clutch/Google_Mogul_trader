@@ -1,10 +1,10 @@
 import { useState, useCallback, useEffect } from 'react';
-import { WatchlistItem, DailyData, Asset, NewsAlertItem } from '../types';
-import { getInitialMarketData, getUpdatedMarketData } from '../services/marketDataService';
-import { getExecutiveSummary, getKeyNewsAlerts, getAssetInsights } from '../services/geminiService';
-import { db } from '../firebase';
+import { WatchlistItem, DailyData, Asset, NewsAlertItem } from '@/types';
+import { getInitialMarketData, getUpdatedMarketData } from '@/services/marketDataService';
+import { getExecutiveSummary, getKeyNewsAlerts, getAssetInsights } from '@/services/geminiService';
+import { db } from '@/core/firebase';
 import { collection, doc, setDoc, getDocs, writeBatch } from 'firebase/firestore';
-import { handleFirestoreError, OperationType } from '../utils/firestoreErrorHandler';
+import { handleFirestoreError, OperationType } from '@/utils/firestoreErrorHandler';
 
 export const useTradingBot = (userId?: string) => {
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);

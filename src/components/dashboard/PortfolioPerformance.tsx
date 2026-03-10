@@ -1,7 +1,7 @@
 import React from 'react';
-import { WatchlistItem } from '../types';
-import { ArrowDownIcon, ArrowUpIcon } from './IconComponents';
-import { DashboardCard } from './DashboardCard';
+import { WatchlistItem } from '@/types';
+import { ArrowDownIcon, ArrowUpIcon } from '@/components/ui/IconComponents';
+import { DashboardCard } from '@/components/dashboard/DashboardCard';
 import { PieChart, Wallet, TrendingUp, Activity } from 'lucide-react';
 
 interface PortfolioPerformanceProps {

@@ -1,6 +1,6 @@
 import React from 'react';
-import { WatchlistItem } from '../types';
-import { ArrowDownIcon, ArrowUpIcon } from './IconComponents';
+import { WatchlistItem } from '@/types';
+import { ArrowDownIcon, ArrowUpIcon } from '@/components/ui/IconComponents';
 
 interface AssetTableProps {
   assets: WatchlistItem[];

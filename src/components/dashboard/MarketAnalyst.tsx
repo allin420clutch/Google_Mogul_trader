@@ -4,8 +4,12 @@ import Markdown from 'react-markdown';
 import { Send, Image as ImageIcon, Loader2, Search, BrainCircuit, X } from 'lucide-react';
 
 const API_KEY = process.env.GEMINI_API_KEY;
-if (!API_KEY) throw new Error("GEMINI_API_KEY environment variable not set");
-const ai = new GoogleGenAI({ apiKey: API_KEY });
+let ai: GoogleGenAI | null = null;
+if (API_KEY) {
+  ai = new GoogleGenAI({ apiKey: API_KEY });
+} else {
+  console.warn("GEMINI_API_KEY environment variable not set");
+}
 
 interface Message {
   id: string;
@@ -60,8 +64,18 @@ export const MarketAnalyst: React.FC = () => {
     setIsProcessing(true);
 
     try {
+      if (!ai) {
+        setMessages(prev => [...prev, {
+          id: (Date.now() + 1).toString(),
+          role: 'model',
+          text: "AI integration is not configured. Please set the GEMINI_API_KEY."
+        }]);
+        setIsProcessing(false);
+        return;
+      }
+
       let responseText = '';
-      
+
       const parts: any[] = [];
       if (userMessage.image) {
         // Extract base64 data and mime type
@@ -96,7 +110,7 @@ export const MarketAnalyst: React.FC = () => {
           }
         });
         responseText = response.text || 'No response generated.';
-        
+
         // Append sources if available
         const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
         if (chunks && chunks.length > 0) {
@@ -171,7 +185,7 @@ export const MarketAnalyst: React.FC = () => {
               <Search className={`w-16 h-16 opacity-40 ${modeAccent}`} />
             )}
             <p className="text-center max-w-sm text-sm leading-relaxed">
-              {mode === 'think' 
+              {mode === 'think'
                 ? "Ask me to analyze complex market trends, upload a chart for technical analysis, or break down trading strategies."
                 : "Search the web for the latest crypto news, real-time asset prices, or breaking market events."}
             </p>
@@ -253,11 +267,10 @@ export const MarketAnalyst: React.FC = () => {
           <button
             type="submit"
             disabled={isProcessing || (!input.trim() && !selectedImage)}
-            className={`p-3 rounded-xl transition-all duration-300 shadow-md ${
-              isProcessing || (!input.trim() && !selectedImage)
-                ? 'bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-700'
-                : `${modeBg} text-white hover:brightness-110 hover:shadow-lg hover:-translate-y-0.5`
-            }`}
+            className={`p-3 rounded-xl transition-all duration-300 shadow-md ${isProcessing || (!input.trim() && !selectedImage)
+              ? 'bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-700'
+              : `${modeBg} text-white hover:brightness-110 hover:shadow-lg hover:-translate-y-0.5`
+              }`}
           >
             <Send className="w-5 h-5" />
           </button>

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { ExclamationTriangleIcon } from './IconComponents';
+import { ExclamationTriangleIcon } from '@/components/ui/IconComponents';
 
 export interface ToastNotification {
   id: string;

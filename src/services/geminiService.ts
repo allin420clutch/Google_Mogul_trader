@@ -1,17 +1,19 @@
 import { GoogleGenAI } from "@google/genai";
-import { Asset, NewsAlertItem, SentimentAnalysis } from "../types";
+import { Asset, NewsAlertItem, SentimentAnalysis } from '@/types';
 
 const API_KEY = process.env.GEMINI_API_KEY;
 
-if (!API_KEY) {
-  throw new Error("GEMINI_API_KEY environment variable not set");
+let ai: GoogleGenAI | null = null;
+if (API_KEY) {
+    ai = new GoogleGenAI({ apiKey: API_KEY });
+} else {
+    console.warn("GEMINI_API_KEY environment variable not set");
 }
 
-const ai = new GoogleGenAI({ apiKey: API_KEY });
-
 async function generateWithRetry(prompt: string, modelName: 'gemini-3-flash-preview', config: any): Promise<string> {
+    if (!ai) return "AI analysis requires GEMINI_API_KEY.";
     let retries = 3;
-    while(retries > 0) {
+    while (retries > 0) {
         try {
             const result = await ai.models.generateContent({
                 model: modelName,
@@ -22,7 +24,7 @@ async function generateWithRetry(prompt: string, modelName: 'gemini-3-flash-prev
         } catch (e: any) {
             console.error(`Gemini API call failed for model ${modelName}. Retries left: ${retries - 1}`, e);
             retries--;
-            if(retries === 0) {
+            if (retries === 0) {
                 // Return a fallback string instead of throwing to prevent app crash
                 if (config.responseMimeType === "application/json") {
                     return JSON.stringify({ error: "Rate limit exceeded or API error." });
@@ -51,7 +53,7 @@ export const getExecutiveSummary = async (gainers: Asset[], losers: Asset[]): Pr
     `;
 
     return generateWithRetry(prompt, 'gemini-3-flash-preview', {
-      temperature: 0.7
+        temperature: 0.7
     });
 };
 
@@ -64,11 +66,12 @@ export const getKeyNewsAlerts = async (): Promise<NewsAlertItem> => {
         Format your response as a simple list with each item on a new line, starting with a dash.
     `;
     try {
+        if (!ai) return { alerts: ["AI analysis requires GEMINI_API_KEY."], sources: [] };
         const result = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
             contents: prompt,
             config: {
-              tools: [{googleSearch: {}}],
+                tools: [{ googleSearch: {} }],
             },
         });
 
@@ -78,7 +81,7 @@ export const getKeyNewsAlerts = async (): Promise<NewsAlertItem> => {
             .map(chunk => chunk.web)
             .filter((web): web is { uri: string; title: string; } => !!web && !!web.uri)
             .filter((source, index, self) => index === self.findIndex(s => s.uri === source.uri));
-        
+
         return { alerts, sources };
 
     } catch (e) {
@@ -152,6 +155,7 @@ export const analyzeChartImage = async (base64Data: string, mimeType: string = "
     const prompt = "Analyze this cryptocurrency chart. Identify the current trend (Bullish/Bearish) and look for any technical patterns like Head and Shoulders or Support/Resistance levels.";
 
     try {
+        if (!ai) return "AI analysis requires GEMINI_API_KEY.";
         const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
             contents: {

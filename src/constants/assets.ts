@@ -1,6 +1,6 @@
-import { Asset } from '../types';
+import { Asset } from '@/types';
 
-const initialAssets: Asset[] = [
+export const INITIAL_ASSETS: Asset[] = [
     { id: 'bitcoin', name: 'Bitcoin', symbol: 'BTC', price: 68000, marketCap: 1300000000000, dailyChange: 0, openingPrice: 68000, lifetimeChange: 65000 },
     { id: 'ethereum', name: 'Ethereum', symbol: 'ETH', price: 3500, marketCap: 420000000000, dailyChange: 0, openingPrice: 3500, lifetimeChange: 350000 },
     { id: 'solana', name: 'Solana', symbol: 'SOL', price: 160, marketCap: 73000000000, dailyChange: 0, openingPrice: 160, lifetimeChange: 80000 },
@@ -22,44 +22,3 @@ const initialAssets: Asset[] = [
     { id: 'vechain', name: 'VeChain', symbol: 'VET', price: 0.035, marketCap: 2500000000, dailyChange: 0, openingPrice: 0.035, lifetimeChange: 1700 },
     { id: 'algorand', name: 'Algorand', symbol: 'ALGO', price: 0.18, marketCap: 1500000000, dailyChange: 0, openingPrice: 0.18, lifetimeChange: -25 },
 ];
-
-export const getInitialMarketData = (): Asset[] => {
-  return initialAssets.map(asset => ({
-    ...asset,
-    highPrice: asset.price,
-    lowPrice: asset.price
-  }));
-};
-
-export const getUpdatedMarketData = (previousData: Asset[]): Asset[] => {
-    return previousData.map(asset => {
-        const openingPrice = asset.price;
-        // Introduce more volatility. Max change can be +/- 15%
-        const volatilityFactor = 0.15; 
-        const changePercent = (Math.random() - 0.5) * 2 * volatilityFactor; 
-        
-        const closingPrice = openingPrice * (1 + changePercent);
-        const newMarketCap = asset.marketCap * (1 + changePercent);
-        const dailyChange = changePercent * 100;
-
-        // Generate high and low prices
-        const maxOC = Math.max(openingPrice, closingPrice);
-        const minOC = Math.min(openingPrice, closingPrice);
-        // Randomly extend high/low beyond open/close
-        const highPrice = maxOC * (1 + Math.random() * (volatilityFactor / 2));
-        const lowPrice = minOC * (1 - Math.random() * (volatilityFactor / 2));
-
-        const lifetimeChange = ((closingPrice - (asset.price / (1 + asset.lifetimeChange/100))) / (asset.price / (1 + asset.lifetimeChange/100))) * 100;
-
-        return {
-            ...asset,
-            price: closingPrice,
-            marketCap: newMarketCap,
-            dailyChange: dailyChange,
-            openingPrice: openingPrice,
-            highPrice,
-            lowPrice,
-            lifetimeChange: lifetimeChange
-        };
-    });
-};

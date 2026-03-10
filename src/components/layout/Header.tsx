@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowPathIcon, PlayIcon } from './IconComponents';
+import { ArrowPathIcon, PlayIcon } from '@/components/ui/IconComponents';
 import { User } from 'firebase/auth';
 
 interface HeaderProps {
